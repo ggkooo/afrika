@@ -173,6 +173,39 @@ make -j$(nproc)
 ```
 
 
+## Automated build performed here ✅
+I ran a local automated build in this repository to verify compilation. Summary:
+
+- Working directory: project root (/home/giordano/Documents/web-browser)
+- Qt detected at: `/usr/lib/cmake/Qt6`
+- CMake configuration command used:
+
+```bash
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr/lib/cmake/Qt6 -DQT_DEBUG_FIND_PACKAGE=ON
+```
+
+- Build command used:
+
+```bash
+cmake --build . -- -j$(nproc)
+```
+
+- Result: build completed successfully. Executable created at:
+
+```
+/home/giordano/Documents/web-browser/build/SimpleBrowser
+```
+
+How to run locally:
+
+```bash
+./build/SimpleBrowser
+```
+
+If you want me to run the binary and capture stdout/stderr, or to produce a debug build/artifact, tell me which option you prefer.
+
+---
+
 ## Contributing
 Contributions and fixes are welcome. Open issues or pull requests with clear descriptions.
 
