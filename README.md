@@ -1,11 +1,32 @@
-# Simple Browser
+# RaDim Browser 🧭
 
-A minimal, lightweight web browser focused on speed, simplicity, and privacy. The project aims to provide a clean, distraction-free browsing experience with sensible defaults that protect user data while remaining easy to use and customize.
+A minimal and lightweight web browser focused on speed, simplicity, and privacy. Educational and experimental project based on C++/Qt.
 
-Key goals:
-- Fast startup and low resource usage
-- Privacy-respecting defaults
-- Simple, intuitive interface for everyday browsing
+## Main features
+- Minimal interface with basic navigation controls
+- Simple settings storage
+- Uses Qt (Widgets + WebEngine/MVC)
 
-Who it's for:
-Users who want a no-frills browser that gets out of the way and lets them browse the web quickly without unnecessary features or complexity.
+## How to build
+
+**Requirements:**
+- C++ compiler (g++ or clang) with C++11/C++14 support
+- CMake 3.5+
+- Qt5 or Qt6 development libraries (including moc)
+
+On Debian/Ubuntu:
+
+```bash
+sudo apt update
+sudo apt install -y build-essential cmake git qt5-default qtbase5-dev qtwebengine5-dev
+```
+
+To build:
+
+```bash
+mkdir build && cd build
+cmake ..
+make
+```
+
+The executable will be generated in the `build/` folder.
