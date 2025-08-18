@@ -56,7 +56,7 @@ BrowserWindow::BrowserWindow(const QUrl &home, QWidget *parent)
     toolbar->addWidget(gap);
     menuButton->setMenu(mainMenu);
     menuButton->setAutoRaise(true);
-    menuButton->setStyleSheet("QToolButton::menu-indicator { image: none; }");
+    menuButton->setStyleSheet("QToolButton { margin-right: 12px; } QToolButton::menu-indicator { image: none; }");
     toolbar->addWidget(menuButton);
 
     m_tabs = new QTabWidget(this);
@@ -299,10 +299,10 @@ void BrowserWindow::applyCustomCloseButton(QWidget *tabContainer)
     QString pressBg = darkMode ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.18)";
     btn->setStyleSheet(
         QString(
-            "QPushButton { border:none; background:transparent; padding:0; font-size:11px; font-weight:bold; color:%1;}"
-            "QPushButton:hover { background:%2; color:%1; border-radius:3px;}"
-            "QPushButton:pressed { background:%3; }"
-        ).arg(baseColor, hoverBg, pressBg)
+            "QPushButton { border:none; background:transparent; padding:0; font-size:11px; font-weight:bold; color:%1; margin-right:10px;}"
+            "QPushButton:hover { background:transparent; color:%2; border-radius:3px;}"
+            "QPushButton:pressed { background:transparent; color:%3; }"
+        ).arg(baseColor, darkMode ? "#fff" : "#222", darkMode ? "#fff" : "#222")
     );
     bar->setTabButton(idx, QTabBar::RightSide, btn);
     QObject::connect(btn, &QPushButton::clicked, this, [this, tabContainer]() {
@@ -334,7 +334,7 @@ void BrowserWindow::updateTabStyles()
     // Larger height, clearer focus/selected states
     if (darkMode) {
         bar->setStyleSheet(
-            "QTabBar::tab { background:#1b1b1b; color:#d0d0d0; padding:10px 10px 10px 16px; margin:2px 2px 0 2px; border-radius:6px 6px 0 0; min-height:34px; }"
+            "QTabBar::tab { background:#1b1b1b; color:#d0d0d0; padding:7px 10px 7px 16px; margin:2px 2px 4px 2px; border-radius:6px 6px 0 0; min-height:26px; border-bottom:1px solid #333; }"
             "QTabBar::tab:selected { background:#262626; color:#ffffff; }"
             "QTabBar::tab:hover { background:#2e2e2e; }"
             "QTabBar::tab:!selected { opacity:0.85; }"
@@ -342,7 +342,7 @@ void BrowserWindow::updateTabStyles()
         );
     } else {
         bar->setStyleSheet(
-            "QTabBar::tab { background:#f2f2f2; color:#333; padding:10px 10px 10px 16px; margin:2px 2px 0 2px; border:1px solid #d5d5d5; border-bottom:none; border-radius:6px 6px 0 0; min-height:34px; }"
+            "QTabBar::tab { background:#f2f2f2; color:#333; padding:7px 10px 7px 16px; margin:2px 2px 4px 2px; border:1px solid #d5d5d5; border-bottom:1px solid #d5d5d5; border-radius:6px 6px 0 0; min-height:26px; }"
             "QTabBar::tab:selected { background:#ffffff; color:#000; }"
             "QTabBar::tab:hover { background:#e8e8e8; }"
             "QTabBar::tab:!selected { opacity:0.9; }"
