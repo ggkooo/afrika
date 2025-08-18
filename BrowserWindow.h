@@ -8,6 +8,7 @@ class QTabWidget;
 class QLineEdit;
 class QAction;
 class QWebEngineView;
+class QWidget;
 
 class BrowserWindow : public QMainWindow {
     Q_OBJECT
@@ -30,8 +31,10 @@ private:
     QWebEngineView* getCurrentView() const;
     void createTab(const QUrl &initialUrl);
     void ensureViewForIndex(int index);
+    void applyCustomCloseButton(QWidget *tabContainer);
+    void updateAllTabCloseButtons();
+    void updateTabStyles();
 
-    // performance helpers
     void ensureTabLimit();
     static constexpr int MAX_TABS = 16;
 

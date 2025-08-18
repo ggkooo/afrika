@@ -26,6 +26,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QRegularExpression>
+#include <QPushButton>
 
 BrowserWindow::BrowserWindow(const QUrl &home, QWidget *parent)
     : QMainWindow(parent), m_homeUrl(home)
@@ -66,8 +67,11 @@ BrowserWindow::BrowserWindow(const QUrl &home, QWidget *parent)
 
     QTabBar *tabBar = m_tabs->tabBar();
     tabBar->setContextMenuPolicy(Qt::CustomContextMenu);
+    tabBar->setStyleSheet("QTabBar::tab { padding-right:20px; }");
 
-    // Internal helper lambdas use members
+    // Initial style pass for larger tabs
+    updateTabStyles();
+
     auto getViewFromIndexLambda = [&](int index) -> QWebEngineView * {
         if (index < 0 || index >= m_tabs->count())
             return nullptr;
@@ -79,7 +83,6 @@ BrowserWindow::BrowserWindow(const QUrl &home, QWidget *parent)
 
     auto getCurrentViewLambda = [&]() -> QWebEngineView * { return getViewFromIndexLambda(m_tabs->currentIndex()); };
 
-    // createTab implementation
     auto createTabLambda = [&](const QUrl &initialUrl) -> QWebEngineView * {
         QWebEngineView *view = new QWebEngineView;
         view->load(initialUrl);
@@ -91,6 +94,7 @@ BrowserWindow::BrowserWindow(const QUrl &home, QWidget *parent)
 
         int index = m_tabs->addTab(container, "Nova Aba");
         m_tabs->setCurrentIndex(index);
+        applyCustomCloseButton(container);
 
         QObject::connect(view, &QWebEngineView::titleChanged, [this, container](const QString &title) {
             int i = m_tabs->indexOf(container);
@@ -124,7 +128,6 @@ BrowserWindow::BrowserWindow(const QUrl &home, QWidget *parent)
         return view;
     };
 
-    // expose methods using lambdas
     auto makeUrlOrSearch = [&](const QString &text) -> QUrl {
         QString t = text.trimmed();
         if (t.isEmpty())
@@ -144,10 +147,8 @@ BrowserWindow::BrowserWindow(const QUrl &home, QWidget *parent)
         return QUrl(QString("https://duckduckgo.com/?q=") + QString(enc));
     };
 
-    // Hook up actions
     QObject::connect(newTabAction, &QAction::triggered, [this, createTabLambda]() { createTabLambda(m_homeUrl); });
 
-    // Hook up navigation actions to member slots (avoid lambdas that capture local lambdas)
     QObject::connect(m_reloadAction, &QAction::triggered, this, &BrowserWindow::onReload);
     QObject::connect(m_backAction, &QAction::triggered, this, &BrowserWindow::onBack);
     QObject::connect(m_forwardAction, &QAction::triggered, this, &BrowserWindow::onForward);
@@ -156,7 +157,6 @@ BrowserWindow::BrowserWindow(const QUrl &home, QWidget *parent)
         QWidget *w = m_tabs->widget(index);
         m_tabs->removeTab(index);
         delete w;
-        // If no tabs left, open a new one instead of quitting the app
         if (m_tabs->count() == 0) {
             createTab(m_homeUrl);
         }
@@ -184,7 +184,6 @@ BrowserWindow::BrowserWindow(const QUrl &home, QWidget *parent)
 
     QObject::connect(urlEdit, &QLineEdit::returnPressed, this, &BrowserWindow::onUrlEntered);
 
-    // Tab bar context menu
     QObject::connect(tabBar, &QTabBar::customContextMenuRequested,
                      [this, createTabLambda, getViewFromIndexLambda](const QPoint &pos) {
                          int index = m_tabs->tabBar()->tabAt(pos);
@@ -215,7 +214,6 @@ BrowserWindow::BrowserWindow(const QUrl &home, QWidget *parent)
                          }
                      });
 
-    // Populate main menu with session/settings/about/quit
     QAction *saveAct = mainMenu->addAction("Salvar sessão");
     QAction *restoreAct = mainMenu->addAction("Restaurar sessão");
     QAction *clearAct = mainMenu->addAction("Limpar sessão");
@@ -253,6 +251,8 @@ BrowserWindow::BrowserWindow(const QUrl &home, QWidget *parent)
                 m_homeUrl = newHome;
                 darkMode = darkCheck->isChecked();
                 applyDarkMode(darkMode);
+                updateTabStyles();
+                updateAllTabCloseButtons();
                 saveSettingsHomepage(m_homeUrl);
             }
             dlg.accept();
@@ -261,7 +261,6 @@ BrowserWindow::BrowserWindow(const QUrl &home, QWidget *parent)
         dlg.exec();
     });
 
-    // initial tab
     createTabLambda(m_homeUrl);
 }
 
@@ -280,9 +279,80 @@ QWebEngineView *BrowserWindow::getCurrentView() const
     return getViewFromIndex(m_tabs->currentIndex());
 }
 
+void BrowserWindow::applyCustomCloseButton(QWidget *tabContainer)
+{
+    if (!tabContainer) return;
+    int idx = m_tabs->indexOf(tabContainer);
+    if (idx < 0) return;
+    QTabBar *bar = m_tabs->tabBar();
+    if (!bar) return;
+    QWidget *oldBtn = bar->tabButton(idx, QTabBar::RightSide);
+    if (oldBtn) oldBtn->deleteLater();
+    QPushButton *btn = new QPushButton("x");
+    btn->setFlat(true);
+    btn->setCursor(Qt::ArrowCursor);
+    int size = 18; // bigger to match taller tabs
+    btn->setFixedSize(size, size);
+    btn->setToolTip("Fechar aba");
+    QString baseColor = darkMode ? "#aaa" : "#666";
+    QString hoverBg = darkMode ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)";
+    QString pressBg = darkMode ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.18)";
+    btn->setStyleSheet(
+        QString(
+            "QPushButton { border:none; background:transparent; padding:0; font-size:11px; font-weight:bold; color:%1;}"
+            "QPushButton:hover { background:%2; color:%1; border-radius:3px;}"
+            "QPushButton:pressed { background:%3; }"
+        ).arg(baseColor, hoverBg, pressBg)
+    );
+    bar->setTabButton(idx, QTabBar::RightSide, btn);
+    QObject::connect(btn, &QPushButton::clicked, this, [this, tabContainer]() {
+        int i = m_tabs->indexOf(tabContainer);
+        if (i != -1) {
+            QWidget *w = m_tabs->widget(i);
+            m_tabs->removeTab(i);
+            delete w;
+            if (m_tabs->count() == 0) {
+                createTab(m_homeUrl);
+            }
+        }
+    });
+}
+
+void BrowserWindow::updateAllTabCloseButtons()
+{
+    for (int i = 0; i < m_tabs->count(); ++i) {
+        QWidget *w = m_tabs->widget(i);
+        applyCustomCloseButton(w);
+    }
+}
+
+void BrowserWindow::updateTabStyles()
+{
+    if (!m_tabs) return;
+    QTabBar *bar = m_tabs->tabBar();
+    if (!bar) return;
+    // Larger height, clearer focus/selected states
+    if (darkMode) {
+        bar->setStyleSheet(
+            "QTabBar::tab { background:#1b1b1b; color:#d0d0d0; padding:10px 10px 10px 16px; margin:2px 2px 0 2px; border-radius:6px 6px 0 0; min-height:34px; }"
+            "QTabBar::tab:selected { background:#262626; color:#ffffff; }"
+            "QTabBar::tab:hover { background:#2e2e2e; }"
+            "QTabBar::tab:!selected { opacity:0.85; }"
+            "QTabBar { qproperty-drawBase:0; }"
+        );
+    } else {
+        bar->setStyleSheet(
+            "QTabBar::tab { background:#f2f2f2; color:#333; padding:10px 10px 10px 16px; margin:2px 2px 0 2px; border:1px solid #d5d5d5; border-bottom:none; border-radius:6px 6px 0 0; min-height:34px; }"
+            "QTabBar::tab:selected { background:#ffffff; color:#000; }"
+            "QTabBar::tab:hover { background:#e8e8e8; }"
+            "QTabBar::tab:!selected { opacity:0.9; }"
+            "QTabBar { qproperty-drawBase:0; }"
+        );
+    }
+}
+
 void BrowserWindow::createTab(const QUrl &initialUrl)
 {
-    // Delegate to the previous lambda behavior by duplicating code for simplicity
     QWebEngineView *view = new QWebEngineView;
     view->load(initialUrl);
 
@@ -293,6 +363,8 @@ void BrowserWindow::createTab(const QUrl &initialUrl)
 
     int index = m_tabs->addTab(container, "Nova Aba");
     m_tabs->setCurrentIndex(index);
+    applyCustomCloseButton(container);
+    updateTabStyles();
 
     QObject::connect(view, &QWebEngineView::titleChanged, [this, container](const QString &title) {
         int i = m_tabs->indexOf(container);
@@ -326,7 +398,6 @@ void BrowserWindow::createTab(const QUrl &initialUrl)
 
 void BrowserWindow::ensureViewForIndex(int index)
 {
-    // For now views are created eagerly in createTab, so this is a noop.
     Q_UNUSED(index);
 }
 
@@ -410,7 +481,6 @@ void BrowserWindow::clearCache()
     QMessageBox::information(this, "Cache", "Cache e cookies limpos.");
 }
 
-// New slot implementation to handle URL/search input from the main URL bar
 void BrowserWindow::onUrlEntered()
 {
     QWebEngineView *v = getCurrentView();
