@@ -7,7 +7,6 @@
 #include <QToolButton>
 #include <QTabWidget>
 #include <QTabBar>
-#include <QVBoxLayout>
 #include <QWebEngineView>
 #include <QWebEngineHistory>
 #include <QWebEngineProfile>
@@ -27,11 +26,13 @@
 #include <QJsonObject>
 #include <QRegularExpression>
 #include <QPushButton>
+#include <QHBoxLayout>
 
 BrowserWindow::BrowserWindow(const QUrl &home, QWidget *parent)
     : QMainWindow(parent), m_homeUrl(home)
 {
-    // Menu and toolbar
+    setWindowFlag(Qt::FramelessWindowHint);
+
     QMenu *mainMenu = new QMenu(this);
     QToolButton *menuButton = new QToolButton(this);
     menuButton->setText("⋮");
@@ -47,29 +48,92 @@ BrowserWindow::BrowserWindow(const QUrl &home, QWidget *parent)
 
     QLineEdit *urlEdit = new QLineEdit(toolbar);
     m_urlEdit = urlEdit;
-    urlEdit->setMinimumWidth(400);
+    urlEdit->setMinimumWidth(200);
     urlEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    urlEdit->setMaximumWidth(QWIDGETSIZE_MAX);
     toolbar->addWidget(urlEdit);
     urlEdit->setStyleSheet("border: 1px solid rgba(37, 37, 37,0.25); border-radius:12px; padding:4px;");
-    QWidget *gap = new QWidget(this);
-    gap->setFixedWidth(8);
-    toolbar->addWidget(gap);
+
     menuButton->setMenu(mainMenu);
     menuButton->setAutoRaise(true);
-    menuButton->setStyleSheet("QToolButton { margin-right: 12px; } QToolButton::menu-indicator { image: none; }");
+    menuButton->setStyleSheet("QToolButton { margin-right: 6px; } QToolButton::menu-indicator { image: none; }");
+    menuButton->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
     toolbar->addWidget(menuButton);
+
+    m_minimizeButton = new QPushButton("", toolbar);
+    m_maximizeButton = new QPushButton("", toolbar);
+    m_closeButton = new QPushButton("", toolbar);
+    int macBtnSize = 18;
+    m_minimizeButton->setFixedSize(macBtnSize, macBtnSize);
+    m_maximizeButton->setFixedSize(macBtnSize, macBtnSize);
+    m_closeButton->setFixedSize(macBtnSize, macBtnSize);
+    m_minimizeButton->setToolTip("Minimizar");
+    m_maximizeButton->setToolTip("Maximizar/Restaurar");
+    m_closeButton->setToolTip("Fechar");
+    m_minimizeButton->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+    m_maximizeButton->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+    m_closeButton->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+    QString minSvg = "<svg width='10' height='10'><rect x='2' y='4' width='6' height='2' rx='1' fill='#a97c1e'/></svg>";
+    QString maxSvg = "<svg width='10' height='10'><rect x='2' y='2' width='6' height='6' rx='2' fill='#1a7e2b' stroke='#1a7e2b' stroke-width='1.2'/></svg>";
+    QString closeSvg = "<svg width='10' height='10'><line x1='3' y1='3' x2='7' y2='7' stroke='#b03a2e' stroke-width='1.5'/><line x1='7' y1='3' x2='3' y2='7' stroke='#b03a2e' stroke-width='1.5'/></svg>";
+    QIcon minIcon, maxIcon, closeIcon;
+    minIcon.addPixmap(QPixmap::fromImage(QImage::fromData(minSvg.toUtf8(), "SVG")));
+    maxIcon.addPixmap(QPixmap::fromImage(QImage::fromData(maxSvg.toUtf8(), "SVG")));
+    closeIcon.addPixmap(QPixmap::fromImage(QImage::fromData(closeSvg.toUtf8(), "SVG")));
+    m_minimizeButton->setIcon(minIcon);
+    m_maximizeButton->setIcon(maxIcon);
+    m_closeButton->setIcon(closeIcon);
+    m_minimizeButton->setIconSize(QSize(10,10));
+    m_maximizeButton->setIconSize(QSize(10,10));
+    m_closeButton->setIconSize(QSize(10,10));
+    m_minimizeButton->setStyleSheet(
+        "QPushButton { background: #FFBD2E; border: none; border-radius: 9px; }"
+        "QPushButton:hover { border: 1.5px solid #b08b1a; background: #ffe08a; }"
+    );
+    m_maximizeButton->setStyleSheet(
+        "QPushButton { background: #28C940; border: none; border-radius: 9px; }"
+        "QPushButton:hover { border: 1.5px solid #1a7e2b; background: #6eea8c; }"
+    );
+    m_closeButton->setStyleSheet(
+        "QPushButton { background: #FF5F57; border: none; border-radius: 9px; }"
+        "QPushButton:hover { border: 1.5px solid #b03a2e; background: #ffb3ad; }"
+    );
+    toolbar->addWidget(m_minimizeButton);
+    toolbar->addWidget(new QWidget(toolbar));
+    toolbar->widgetForAction(toolbar->actions().last())->setFixedWidth(6);
+    toolbar->addWidget(m_maximizeButton);
+    toolbar->addWidget(new QWidget(toolbar));
+    toolbar->widgetForAction(toolbar->actions().last())->setFixedWidth(6);
+    toolbar->addWidget(m_closeButton);
+    QWidget *rightSpacer = new QWidget(toolbar);
+    rightSpacer->setFixedWidth(8); // ajuste conforme necessário
+    toolbar->addWidget(rightSpacer);
+    connect(m_minimizeButton, &QPushButton::clicked, this, &QWidget::showMinimized);
+    connect(m_maximizeButton, &QPushButton::clicked, [this]() {
+        if (isMaximized())
+            showNormal();
+        else
+            showMaximized();
+    });
+    connect(m_closeButton, &QPushButton::clicked, this, &QWidget::close);
 
     m_tabs = new QTabWidget(this);
     m_tabs->setDocumentMode(true);
     m_tabs->setTabsClosable(true);
     m_tabs->setMovable(true);
-    setCentralWidget(m_tabs);
+
+    QWidget *central = new QWidget(this);
+    QVBoxLayout *mainLayout = new QVBoxLayout(central);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
+    mainLayout->addWidget(toolbar);
+    mainLayout->addWidget(m_tabs);
+    setCentralWidget(central);
 
     QTabBar *tabBar = m_tabs->tabBar();
     tabBar->setContextMenuPolicy(Qt::CustomContextMenu);
     tabBar->setStyleSheet("QTabBar::tab { padding-right:20px; }");
 
-    // Initial style pass for larger tabs
     updateTabStyles();
 
     auto getViewFromIndexLambda = [&](int index) -> QWebEngineView * {
@@ -277,6 +341,12 @@ QWebEngineView *BrowserWindow::getViewFromIndex(int index) const
 QWebEngineView *BrowserWindow::getCurrentView() const
 {
     return getViewFromIndex(m_tabs->currentIndex());
+}
+
+QWebEngineHistory* BrowserWindow::getCurrentHistory() const
+{
+    QWebEngineView* v = getCurrentView();
+    return v ? v->history() : nullptr;
 }
 
 void BrowserWindow::applyCustomCloseButton(QWidget *tabContainer)
@@ -517,32 +587,21 @@ void BrowserWindow::onUrlEntered()
 
 void BrowserWindow::onBack()
 {
-    QWebEngineView *v = getCurrentView();
-    if (!v)
-        return;
-    QWebEngineHistory *h = v->history();
-    if (!h)
-        return;
-    if (h->canGoBack())
-        v->back();
+    QWebEngineHistory* h = getCurrentHistory();
+    if (h && h->canGoBack())
+        h->back();
 }
 
 void BrowserWindow::onForward()
 {
-    QWebEngineView *v = getCurrentView();
-    if (!v)
-        return;
-    QWebEngineHistory *h = v->history();
-    if (!h)
-        return;
-    if (h->canGoForward())
-        v->forward();
+    QWebEngineHistory* h = getCurrentHistory();
+    if (h && h->canGoForward())
+        h->forward();
 }
 
 void BrowserWindow::onReload()
 {
-    QWebEngineView *v = getCurrentView();
-    if (!v)
-        return;
-    v->reload();
+    QWebEngineView* v = getCurrentView();
+    if (v)
+        v->reload();
 }

@@ -9,6 +9,8 @@ class QLineEdit;
 class QAction;
 class QWebEngineView;
 class QWidget;
+class QPushButton;
+class QWebEngineHistory;
 
 class BrowserWindow : public QMainWindow {
     Q_OBJECT
@@ -26,6 +28,9 @@ private:
     QAction *m_backAction;
     QAction *m_forwardAction;
     QAction *m_reloadAction;
+    QPushButton *m_minimizeButton;
+    QPushButton *m_maximizeButton;
+    QPushButton *m_closeButton;
 
     QWebEngineView* getViewFromIndex(int index) const;
     QWebEngineView* getCurrentView() const;
@@ -34,6 +39,9 @@ private:
     void applyCustomCloseButton(QWidget *tabContainer);
     void updateAllTabCloseButtons();
     void updateTabStyles();
+
+    // Retorna o histórico da aba atual, ou nullptr se não houver.
+    QWebEngineHistory* getCurrentHistory() const;
 
     void ensureTabLimit();
     static constexpr int MAX_TABS = 16;
