@@ -12,7 +12,7 @@ bool darkMode = false;
 static QString configDir() {
     QString dir = QStandardPaths::writableLocation(QStandardPaths::ConfigLocation);
     if (dir.isEmpty()) dir = QDir::homePath() + "/.config";
-    dir += "/simplebrowser";
+    dir += "/afrika";
     QDir d(dir);
     if (!d.exists()) d.mkpath(".");
     return dir;

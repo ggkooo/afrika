@@ -5,11 +5,12 @@
 #include <QWebEngineProfile>
 #include <QWebEngineSettings>
 
-#include "BrowserWindow.h"
-#include "Settings.h"
+#include "ui/BrowserWindow.h"
+#include "storage/Settings.h"
 
 int main(int argc, char **argv) {
     QApplication app(argc, argv);
+    app.setApplicationName("Afrika");
 
     // Enable high-DPI pixmaps for crisper UI on HiDPI displays
 #if QT_VERSION < QT_VERSION_CHECK(6,6,0)
@@ -22,7 +23,7 @@ int main(int argc, char **argv) {
     // Configure a shared WebEngine profile for all views to improve caching and reduce memory
     QString cacheDir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
     if (cacheDir.isEmpty()) cacheDir = QDir::homePath() + "/.cache";
-    cacheDir += "/simplebrowser";
+    cacheDir += "/afrika";
     QDir d(cacheDir);
     if (!d.exists()) d.mkpath(".");
 
