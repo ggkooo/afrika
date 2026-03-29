@@ -1,4 +1,4 @@
-# RaDim Browser 🧭
+# Afrika Browser
 
 A minimal and lightweight web browser focused on speed, simplicity, and privacy. Educational and experimental project based on C++/Qt.
 
